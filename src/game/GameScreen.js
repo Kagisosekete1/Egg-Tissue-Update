@@ -26,7 +26,7 @@ export default function GameScreen(){
   const userId=user?.id;
   const [game,setGame]=useState(()=>createGame(settings)),gameRef=useRef(game);
   const [rematchedGameId,setRematchedGameId]=useState(null);
-  const [active,setActive]=useState(false),[face,setFace]=useState(1),[sprayToken,setSprayToken]=useState(0),[resetToken,setResetToken]=useState(0),[speech,setSpeech]=useState(''),[result,setResult]=useState(null),[adPaused,setAdPaused]=useState(false),[adsReady,setAdsReady]=useState(false),[adInitError,setAdInitError]=useState(''),[equippedShield,setEquippedShield]=useState(null),[shieldMessage,setShieldMessage]=useState(''),[shieldProcessing,setShieldProcessing]=useState(false),[powerInventory,setPowerInventory]=useState(/** @type {Record<string,number>} */ ({})),[powerBusy,setPowerBusy]=useState(false),[powerupsOpen,setPowerupsOpen]=useState(false);
+  const [active,setActive]=useState(false),[face,setFace]=useState(1),[sprayToken,setSprayToken]=useState(0),[resetToken,setResetToken]=useState(0),[speech,setSpeech]=useState(''),[result,setResult]=useState(null),[adPaused,setAdPaused]=useState(false),[adsReady,setAdsReady]=useState(false),[adInitError,setAdInitError]=useState(''),[equippedShield,setEquippedShield]=useState(null),[shieldMessage,setShieldMessage]=useState(''),[shieldProcessing,setShieldProcessing]=useState(false),[powerInventory,setPowerInventory]=useState(/** @type {Record<string,number>} */ ({})),[powerInventoryLoaded,setPowerInventoryLoaded]=useState(false),[powerBusy,setPowerBusy]=useState(false),[powerupsOpen,setPowerupsOpen]=useState(false);
   const pendingReward=useRef(false),submitted=useRef(new Map()),lastMood=useRef(0),tournamentGames=useRef(new Set()),rematchedGames=useRef(new Set()),powerBusyRef=useRef(false),pendingPowerActions=useRef(new Map());
   const shieldRef=useRef(null),sprayBusy=useRef(false);
   const [tournament,setTournament]=useState([0,0]);
@@ -41,9 +41,10 @@ export default function GameScreen(){
   useEffect(()=>{if(active&&!over)startGame();},[active,over,startGame]);
   useEffect(()=>{
     let current=true;
-    if(!active||!userId)return()=>{current=false;};
+    if(!userId){setPowerInventory({});setPowerInventoryLoaded(true);return()=>{current=false;};}
+    if(!active){setPowerInventoryLoaded(false);return()=>{current=false;};}
     loadEquippedShield(userId).then(value=>{if(current){shieldRef.current=value;setEquippedShield(value);}}).catch(()=>{});
-    loadPowerupInventory(userId).then(value=>{if(current)setPowerInventory(value);}).catch(()=>{});
+    loadPowerupInventory(userId).then(value=>{if(current)setPowerInventory(value);}).catch(()=>{}).finally(()=>{if(current)setPowerInventoryLoaded(true);});
     return()=>{current=false;};
   },[active,userId]);
   const finalize=useCallback(g=>{
@@ -54,6 +55,20 @@ export default function GameScreen(){
     })();submitted.current.set(g.gameId,task);return task;
   },[userId,refreshProfile]);
   useEffect(()=>{if(over)void finalize(gameRef.current);},[over,game.gameId,finalize]);
+  useEffect(()=>{
+    // An AI attack opens a short counter response phase. If this account has no
+    // counter available (or is playing offline), resolve the response at once
+    // so the game never appears to wait for an impossible action.
+    if(!active||game.phase!=='counter'||!game.pendingCounter||!powerInventoryLoaded)return;
+    if((powerInventory.counter_attack||0)>0)return;
+    const timer=setTimeout(()=>{
+      const current=gameRef.current;
+      if(current.gameId!==game.gameId||current.phase!=='counter'||!current.pendingCounter)return;
+      commit(declineCounter(current));
+      setSpeech('Computer attack resolved. Your turn—roll the dice!');
+    },350);
+    return()=>clearTimeout(timer);
+  },[active,game,game.gameId,powerInventory,powerInventoryLoaded,commit]);
   const reset=useCallback(()=>{const previous=gameRef.current;if(previous.phase==='over')finalize(previous);commit(createGame(settings));setTournament(scores=>settings.gameMode!=='tour'||scores.some(n=>n>=2)?[0,0]:scores);setSpeech('');setResult(null);setFace(1);pendingReward.current=false;setAdPaused(false);setResetToken(v=>v+1);lastMood.current=0;},[commit,settings,finalize]);
   const rematch=useCallback(()=>{const previous=gameRef.current;if(previous.phase!=='over'||rematchedGames.current.has(previous.gameId))return;rematchedGames.current.add(previous.gameId);setRematchedGameId(previous.gameId);reset();},[reset]);
   const configKey=`${settings.mode}|${settings.difficulty}|${settings.gameMode}`;
