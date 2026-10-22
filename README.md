@@ -28,12 +28,6 @@ The Android AdMob App ID is `ca-app-pub-3333777272750017~7598669780` and the pro
 
 ## Build
 
-Install dependencies with `npm ci` and use Expo-compatible package versions. On this Windows machine, CMake needs short paths. Builds are staged in `C:\rnapp`, with dependencies at `C:\nm`; the source of record remains this folder.
+Install dependencies with `npm ci`, then run `.\build-native-release.ps1` from this project directory. The script applies the Android native-build workaround and produces both APK and AAB files in the sibling `artifacts` folder by default. Set `EGGTISSUE_OUTPUT_DIR` to choose another output directory.
 
-From `C:\rnapp\android`, with the supplied native CMake workaround and arm64 library prepared:
-
-```powershell
-.\gradlew.bat --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a -I C:\rnapp\skip-expo-native.gradle app:assembleRelease app:bundleRelease
-```
-
-The sibling `artifacts` directory contains the APK and AAB for the connected arm64 Android phone. This review build is signed with the existing Android debug keystore. A private upload key is needed for a Google Play release.
+Release signing requires the Play upload keystore and the four `EGGTISSUE_UPLOAD_*` environment variables used by the build script. Keep the keystore and passwords outside this repository. An APK can update an installed Play build only when it is signed with the matching certificate; never uninstall an app merely to bypass a signature mismatch, since that can remove local app data.
