@@ -12,7 +12,7 @@ Profiles support a square photo, username, and searchable country selection. Pro
 
 ## Scoring and data
 
-The complete schema is `supabase/all-tables.sql`; SQL is not a page inside the app. Migrations 001, 002, and 003 are included. Migration 003 was applied to the connected project and imports legacy wins without overwriting subsequent native results.
+The complete schema is `supabase/all-tables.sql`; SQL is not a page inside the app. Migrations 001–003, 005–008, and 012 are included. Migration 003 was applied to the connected project and imports legacy wins without overwriting subsequent native results. Migration 012 must be applied before using point-staked battles.
 
 A completed round awards:
 
@@ -31,3 +31,7 @@ The Android AdMob App ID is `ca-app-pub-3333777272750017~7598669780` and the pro
 Install dependencies with `npm ci`, then run `.\build-native-release.ps1` from this project directory. The script applies the Android native-build workaround and produces both APK and AAB files in the sibling `artifacts` folder by default. Set `EGGTISSUE_OUTPUT_DIR` to choose another output directory.
 
 Release signing requires the Play upload keystore and the four `EGGTISSUE_UPLOAD_*` environment variables used by the build script. Keep the keystore and passwords outside this repository. An APK can update an installed Play build only when it is signed with the matching certificate; never uninstall an app merely to bypass a signature mismatch, since that can remove local app data.
+
+### Point-staked online battles
+
+Migrate the database with `supabase/migrations/012_point_staked_online_battles.sql` before using the Challenges flow. Stakes use 50-point increments (50–5,000), are held server-side, and the winner receives both stakes after the server resolves the fall or a player forfeits. Invites expire after 24 hours and are refunded when the expiry cleanup RPC runs. Battle state and point settlement are validated by authenticated database functions; `supabase/all-tables.sql` includes this migration. Deploy the `send-battle-update` Supabase Edge Function to notify the other player when a battle is accepted, their turn starts, or a battle ends.

@@ -1,0 +1,62 @@
+import React, { useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
+import GameScene from '../Scene.native';
+import DicePreview from '../src/components/DicePreview';
+import { Avatar, Button, C } from '../src/components/ui';
+import { useAuth } from '../src/context/AuthContext';
+import { useProfile } from '../src/context/ProfileContext';
+import { useGameSettings } from '../src/context/GameSettingsContext';
+import { forfeitBattle, loadBattle, rollBattle, sprayBattle } from '../src/lib/battles';
+import { supabase } from '../src/lib/supabase';
+import { useGameAudio } from '../src/game/useGameAudio';
+
+export default function BattleScreen(){
+  const {id}=useLocalSearchParams(),{user}=useAuth(),{refreshProfile}=useProfile(),{settings}=useGameSettings();
+  const [battle,setBattle]=useState(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[face,setFace]=useState(1),[sprayToken,setSprayToken]=useState(0),[active,setActive]=useState(false);
+  const actionLock=useRef(false);
+  const {play,startGame}=useGameAudio(settings.soundEnabled!==false,active,battle?.phase==='over');
+  const refresh=useCallback(async()=>{if(!id)return;try{const next=await loadBattle(id);setBattle(next);setFace(next.roll||next.last_roll||1);}catch(error){Alert.alert('Battle unavailable',error.message);}finally{setLoading(false);}},[id]);
+  useFocusEffect(useCallback(()=>{
+    let live=true;setActive(true);setLoading(true);
+    const load=async()=>{try{const next=await loadBattle(id);if(live){setBattle(next);setFace(next.roll||next.last_roll||1);}}catch(error){if(live)Alert.alert('Battle unavailable',error.message);}finally{if(live)setLoading(false);}};
+    load();
+    const channel=supabase.channel(`battle-${id}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'game_battles',filter:`id=eq.${id}`},payload=>{
+      if(!live)return;
+      setBattle(current=>current?{...current,...payload.new}:current);
+      if(payload.new.phase==='over')refreshProfile().catch(()=>{});
+    }).subscribe();
+    const timer=setInterval(load,5000);
+    return()=>{live=false;setActive(false);clearInterval(timer);supabase.removeChannel(channel);};
+  },[id,refreshProfile]));
+  const isPlayer=!!battle&&(user?.id===battle.player_one||user?.id===battle.player_two);
+  const yourTurn=isPlayer&&battle?.current_player===user?.id;
+  const over=battle?.phase==='over';
+  const danger=battle?Math.min(1.2,Number(battle.damage)/Number(battle.threshold)):0;
+  const nameFor=playerId=>playerId===battle?.player_one?(battle?.player_one_profile?.username||'Player 1'):(battle?.player_two_profile?.username||'Player 2');
+  const profileFor=playerId=>playerId===battle?.player_one?battle?.player_one_profile:battle?.player_two_profile;
+  const applyServerState=next=>{setBattle(current=>({...current,...next,player_one_profile:current?.player_one_profile,player_two_profile:current?.player_two_profile}));setFace(next.roll||next.last_roll||1);};
+  async function roll(){if(!yourTurn||battle.phase!=='ready'||actionLock.current)return;actionLock.current=true;setBusy(true);startGame();play('roll');try{const next=await rollBattle(battle.id);applyServerState(next);}catch(error){Alert.alert('Dice could not roll',error.message);await refresh();}finally{actionLock.current=false;setBusy(false);}}
+  async function spray(){if(!yourTurn||battle.phase!=='spraying'||actionLock.current)return;actionLock.current=true;setBusy(true);try{const next=await sprayBattle(battle.id);applyServerState(next);setSprayToken(value=>value+1);play(next.phase==='over'?'scream':'spray');if(next.phase==='over')await refreshProfile();if(next.phase==='over'||(next.phase==='ready'&&next.current_player!==user?.id))void supabase.functions.invoke('send-battle-update',{body:{event:'battle',battle_id:battle.id}}).catch(()=>{});}catch(error){Alert.alert('Spray did not register',error.message);await refresh();}finally{actionLock.current=false;setBusy(false);}}
+  function confirmForfeit(){Alert.alert('Forfeit this battle?','This ends the match and gives the full point pot to your opponent.',[{text:'Keep playing',style:'cancel'},{text:'Forfeit',style:'destructive',onPress:async()=>{if(actionLock.current)return;actionLock.current=true;setBusy(true);try{const next=await forfeitBattle(battle.id);applyServerState(next);await refreshProfile().catch(()=>{});void supabase.functions.invoke('send-battle-update',{body:{event:'battle',battle_id:battle.id}}).catch(()=>{});}catch(error){Alert.alert('Could not forfeit',error.message);}finally{actionLock.current=false;setBusy(false);}}}]);}
+  if(loading&&!battle)return <SafeAreaView style={styles.root}><StatusBar barStyle="light-content"/><ActivityIndicator style={{flex:1}} size="large" color={C.gold}/></SafeAreaView>;
+  const player=battle?.current_player,me=profileFor(user?.id),opponent=profileFor(user?.id===battle?.player_one?battle?.player_two:battle?.player_one);
+  const gameMessage=over?`${nameFor(battle.winner_id)} wins the battle!`:`${yourTurn?'Your':nameFor(player)+'’s'} turn · ${battle?.phase==='ready'?'roll the dice':`spray ${battle?.sprayed} of ${battle?.roll}`}`;
+  return <SafeAreaView edges={['top','left','right']} style={styles.root}><StatusBar barStyle="light-content"/><ScrollView contentContainerStyle={styles.content}>
+    <View style={styles.header}><Pressable onPress={()=>router.back()}><Text style={styles.back}>‹</Text></Pressable><Text style={styles.title}>⚔️ Point Battle</Text></View>
+    {battle?<>
+      <View style={styles.players}><View style={styles.player}><Avatar uri={battle.player_one_profile?.avatar_url} size={42}/><Text style={styles.playerName}>{battle.player_one_profile?.username||'Player 1'}</Text>{battle.current_player===battle.player_one&&!over&&<Text style={styles.turnTag}>TURN</Text>}</View><Text style={styles.vs}>VS</Text><View style={styles.player}><Avatar uri={battle.player_two_profile?.avatar_url} size={42}/><Text style={styles.playerName}>{battle.player_two_profile?.username||'Player 2'}</Text>{battle.current_player===battle.player_two&&!over&&<Text style={styles.turnTag}>TURN</Text>}</View></View>
+      <View style={styles.pot}><Text style={styles.potLabel}>{over?'BATTLE POT AWARDED':'POINTS AT STAKE'}</Text><Text style={styles.potValue}>{(Number(battle.stake_points)*2).toLocaleString()} points</Text><Text style={styles.caption}>{Number(battle.stake_points).toLocaleString()} from each player</Text></View>
+      <View style={styles.scene}><GameScene danger={danger} sprayToken={sprayToken} falling={over} fallVariant={over?'spin':null} resetToken={0} paused={!active} onImpact={()=>play('crash')}/></View>
+      <View style={styles.infoRow}><View style={styles.info}><Text style={styles.caption}>BATTLE TURN</Text><Text style={styles.infoValue}>{battle.round}</Text><Text style={styles.caption}>{gameMessage}</Text></View><View style={styles.info}><Text style={styles.caption}>TISSUE TENSION</Text><View style={styles.meter}><View style={{height:'100%',width:`${danger*100}%`,backgroundColor:danger>.8?C.red:C.gold}}/></View><Text style={styles.infoValue}>{Math.max(0,Math.round((1-danger)*100))}% safe</Text></View></View>
+      <View style={styles.dice}><DicePreview face={face} rolling={busy&&battle.phase==='ready'}/><Text style={styles.diceText}>{battle.roll?`${battle.roll} sprays · ${battle.sprayed}/${battle.roll} complete`:'Ready to roll'}</Text></View>
+      {over?<View style={styles.result}><Text style={styles.resultTitle}>{nameFor(battle.winner_id)} wins!</Text><Text style={styles.caption}>They received {(Number(battle.stake_points)*2).toLocaleString()} points from the combined stakes.</Text><Button title="Back to battles" onPress={()=>router.replace('/challenges')}/></View>:<View style={styles.actions}><Button title={busy?'Please wait…':'🎲 Roll the dice'} onPress={roll} disabled={!yourTurn||battle.phase!=='ready'||busy}/><Button title={busy?'Please wait…':'💦 Spray tissue'} onPress={spray} disabled={!yourTurn||battle.phase!=='spraying'||busy}/></View>}
+      {!yourTurn&&!over&&<Text style={styles.caption}>Waiting for {nameFor(player)}. This screen updates when they play.</Text>}
+      {!over&&isPlayer&&<Pressable onPress={confirmForfeit} disabled={busy} style={styles.forfeit}><Text style={styles.forfeitText}>Forfeit battle</Text></Pressable>}
+      {me&&opponent&&<Text style={styles.caption}>Signed in as {me.username} · opponent {opponent.username}</Text>}
+    </>:<Text style={styles.caption}>This battle could not be loaded.</Text>}
+  </ScrollView></SafeAreaView>;
+}
+
+const styles={root:{flex:1,backgroundColor:'#063878'},content:{padding:16,paddingBottom:32,gap:14,maxWidth:760,width:'100%',alignSelf:'center'},header:{flexDirection:'row',alignItems:'center',gap:12},back:{fontSize:34,color:C.gold,fontWeight:'500',lineHeight:36},title:{fontSize:25,fontWeight:'900',color:C.ink},players:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',padding:14,backgroundColor:'#0b4fa3',borderRadius:20,borderWidth:1,borderColor:C.line},player:{alignItems:'center',gap:5,flex:1},playerName:{fontWeight:'900',fontSize:13,color:C.ink},turnTag:{color:C.gold,fontWeight:'900',fontSize:10},vs:{color:C.gold,fontWeight:'900',fontSize:18},pot:{alignItems:'center',padding:14,backgroundColor:'#063065',borderWidth:1.5,borderColor:C.gold,borderRadius:18},potLabel:{color:C.muted,fontWeight:'900',fontSize:11,letterSpacing:1},potValue:{color:C.gold,fontWeight:'900',fontSize:26},caption:{color:C.muted,fontSize:12,textAlign:'center',lineHeight:18},scene:{height:280,overflow:'hidden',borderWidth:2,borderColor:C.line,borderRadius:18,backgroundColor:'#9fe6ff'},infoRow:{flexDirection:'row',gap:10},info:{flex:1,padding:13,backgroundColor:'#0b4fa3',borderRadius:16,borderWidth:1,borderColor:C.line,gap:7,alignItems:'center'},infoValue:{fontWeight:'900',fontSize:20,color:C.gold},meter:{height:12,width:'100%',backgroundColor:'#ffffff38',borderRadius:8,overflow:'hidden'},dice:{alignItems:'center',padding:10,backgroundColor:'#0b4fa3',borderRadius:16,borderWidth:1,borderColor:C.line},diceText:{color:C.ink,fontWeight:'900'},actions:{gap:10},forfeit:{padding:12,alignItems:'center',borderRadius:14,borderWidth:1,borderColor:'#ff7784'},forfeitText:{color:'#ffb2bc',fontWeight:'900'},result:{padding:16,gap:10,backgroundColor:'#0b4fa3',borderRadius:18,borderWidth:1.5,borderColor:C.gold},resultTitle:{fontSize:22,fontWeight:'900',color:C.gold,textAlign:'center'}};

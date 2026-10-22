@@ -9,7 +9,7 @@ Deno.serve(async (request: Request) => {
   const { data: { user }, error: authError } = await client.auth.getUser();
   if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const { challenge_id } = await request.json();
-  const { data: challenge, error } = await client.from('game_challenges').select('id,challenger_id,challenged_id,status').eq('id', challenge_id).single();
+  const { data: challenge, error } = await client.from('game_challenges').select('id,challenger_id,challenged_id,status,stake_points').eq('id', challenge_id).single();
   if (error || !challenge || challenge.challenger_id !== user.id || challenge.status !== 'pending') return Response.json({ error: 'Challenge not found' }, { status: 404 });
   const { data: sender } = await client.from('game_profiles').select('username').eq('id', user.id).maybeSingle();
   const apiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
@@ -23,7 +23,7 @@ Deno.serve(async (request: Request) => {
       target_channel: 'push',
       include_aliases: { external_id: [challenge.challenged_id] },
       headings: { en: 'Egg challenge!' },
-      contents: { en: `${sender?.username || 'A player'} challenged you. Tap to accept or decline.` },
+      contents: { en: challenge.stake_points ? `${sender?.username || 'A player'} challenged you for ${challenge.stake_points} points. Match the stake to accept.` : `${sender?.username || 'A player'} invited you to a casual battle. Tap to accept or decline.` },
       data: { type: 'egg_challenge', challenge_id: challenge.id },
     }),
   });

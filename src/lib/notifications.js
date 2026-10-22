@@ -26,6 +26,7 @@ export function initializeNotifications() {
     OneSignal.Notifications.addEventListener('click', (event) => {
       const data = event?.notification?.additionalData;
       if (data?.type === 'egg_challenge') router.push({ pathname: '/challenges', params: { challenge_id: data.challenge_id } });
+      if (data?.type === 'egg_battle_turn' && data.battle_id) router.push({ pathname: '/battle', params: { id: data.battle_id } });
     });
   } catch (error) {
     console.warn('Could not register OneSignal notification listener.', error);
