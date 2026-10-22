@@ -1,0 +1,50 @@
+gradle.projectsEvaluated {
+  def app = gradle.rootProject.findProject(":app")
+  if (app != null) {
+    def shortenNativeObjectPaths = app.tasks.register("shortenNativeObjectPaths") {
+      dependsOn(app.tasks.named("generateAutolinkingPackageList"))
+      dependsOn(app.tasks.named("generateAutolinkingNewArchitectureFiles"))
+      doLast {
+        def cxxRoot = new File(app.projectDir, ".cxx/RelWithDebInfo")
+        if (cxxRoot.exists()) cxxRoot.eachFileRecurse { ninjaFile ->
+          if (ninjaFile.name == "build.ninja") {
+          def content = ninjaFile.getText("UTF-8")
+          def shortPrefix = "rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir/obj/"
+          def oldPrefix = "rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir/C_/rnapp/node_modules/react-native-gesture-handler/shared/shadowNodes/react/renderer/components/rngesturehandler_codegen/"
+          content = content.replace(oldPrefix + "RNGestureHandlerDetectorShadowNode.cpp.o", shortPrefix + "gesture.o")
+          content = content.replace(oldPrefix.replace('/', '\\') + "RNGestureHandlerDetectorShadowNode.cpp.o.d", shortPrefix.replace('/', '\\') + "gesture.o.d")
+          def shortProjectPrefix = "rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir/C_/ET/node_modules/react-native-gesture-handler/shared/shadowNodes/react/renderer/components/rngesturehandler_codegen/"
+          content = content.replace(shortProjectPrefix + "RNGestureHandlerDetectorShadowNode.cpp.o", shortPrefix + "gesture.o")
+          content = content.replace(shortProjectPrefix.replace('/', '\\') + "RNGestureHandlerDetectorShadowNode.cpp.o.d", shortPrefix.replace('/', '\\') + "gesture.o.d")
+          def safeOld = "safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/C_/rnapp/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/"
+          def safeNew = "safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/obj/"
+          def safeOldProject = "safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/C_/ET/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/"
+          [safeOld, safeOldProject].each { safePrefix ->
+            ["react/renderer/components/safeareacontext/ComponentDescriptors.cpp", "react/renderer/components/safeareacontext/EventEmitters.cpp", "react/renderer/components/safeareacontext/Props.cpp", "react/renderer/components/safeareacontext/ShadowNodes.cpp", "react/renderer/components/safeareacontext/States.cpp", "safeareacontext-generated.cpp"].eachWithIndex { name, idx ->
+              content = content.replace(safePrefix + name + ".o", safeNew + "safe" + idx + ".o")
+              content = content.replace(safePrefix.replace('/', '\\') + name.replace('/', '\\') + ".o.d", safeNew.replace('/', '\\') + "safe" + idx + ".o.d")
+            }
+          }
+          def reanimatedOld = "rnreanimated_autolinked_build/CMakeFiles/react_codegen_rnreanimated.dir/C_/ET/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/"
+          def reanimatedNew = "rnreanimated_autolinked_build/CMakeFiles/react_codegen_rnreanimated.dir/obj/"
+          ["react/renderer/components/rnreanimated/ComponentDescriptors.cpp", "react/renderer/components/rnreanimated/EventEmitters.cpp", "react/renderer/components/rnreanimated/Props.cpp", "react/renderer/components/rnreanimated/ShadowNodes.cpp", "react/renderer/components/rnreanimated/States.cpp", "rnreanimated-generated.cpp"].eachWithIndex { name, idx ->
+            content = content.replace(reanimatedOld + name + ".o", reanimatedNew + "reanimated" + idx + ".o")
+            content = content.replace(reanimatedOld.replace('/', '\\') + name.replace('/', '\\') + ".o.d", reanimatedNew.replace('/', '\\') + "reanimated" + idx + ".o.d")
+          }
+          def screensOld = "rnscreens_autolinked_build/CMakeFiles/react_codegen_rnscreens.dir/C_/ET/node_modules/react-native-screens/android/build/generated/source/codegen/jni/"
+          def screensNew = "rnscreens_autolinked_build/CMakeFiles/react_codegen_rnscreens.dir/obj/"
+          ["react/renderer/components/rnscreens/ComponentDescriptors.cpp", "react/renderer/components/rnscreens/EventEmitters.cpp", "react/renderer/components/rnscreens/Props.cpp", "react/renderer/components/rnscreens/ShadowNodes.cpp", "react/renderer/components/rnscreens/States.cpp", "rnscreens-generated.cpp"].eachWithIndex { name, idx ->
+            content = content.replace(screensOld + name + ".o", screensNew + "screens" + idx + ".o")
+            content = content.replace(screensOld.replace('/', '\\') + name.replace('/', '\\') + ".o.d", screensNew.replace('/', '\\') + "screens" + idx + ".o.d")
+          }
+          ninjaFile.text = content
+          }
+        }
+      }
+    }
+    app.tasks.matching { it.name.startsWith("configureCMake") }.configureEach { finalizedBy(shortenNativeObjectPaths) }
+    app.tasks.matching { it.name.startsWith("buildCMakeRelWithDebInfo") }.configureEach { dependsOn(shortenNativeObjectPaths) }
+  }
+  def expoCore = gradle.rootProject.findProject(":expo-modules-core")
+  if (expoCore != null) expoCore.tasks.configureEach { task -> if (task.name.startsWith("buildCMakeRelWithDebInfo")) task.enabled = false }
+}
