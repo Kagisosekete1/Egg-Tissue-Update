@@ -35,3 +35,11 @@ Release signing requires the Play upload keystore and the four `EGGTISSUE_UPLOAD
 ### Point-staked online battles
 
 Migrate the database with `supabase/migrations/012_point_staked_online_battles.sql` before using the Challenges flow. Stakes use 50-point increments (50–5,000), are held server-side, and the winner receives both stakes after the server resolves the fall or a player forfeits. Invites expire after 24 hours and are refunded when the expiry cleanup RPC runs. Battle state and point settlement are validated by authenticated database functions; `supabase/all-tables.sql` includes this migration. Deploy the `send-battle-update` Supabase Edge Function to notify the other player when a battle is accepted, their turn starts, or a battle ends.
+
+## Play the 2D browser edition
+
+Play now: https://egg-tissue-cartoon-play.seketefilmstv.chatgpt.site (private to the Site owner; sign in with the owning ChatGPT account).
+
+The `browser/` directory contains a playable classic-mode web edition using the native cartoon renderer and original game rules. It supports computer and local two-player matches, difficulty selection, pause/restart, synthesized sound, reduced motion, and local best scores. Run `npm ci` then `npm run build` inside that directory. It does not emulate account services, advertisements or online battles. The native Android application remains in the project root.
+
+Validation: production browser bundle builds; DOM integration checks completed a local match, verified paused timers/restart, and checked computer input locking and turn return without runtime errors. Interactive browser/device QA remains outstanding.
