@@ -1,0 +1,3 @@
+import React from 'react';
+import {G,Ellipse,Path} from 'react-native-svg';
+export default function LandingDust({progress}){const p=Math.max(0,Math.min(1,progress));return <G opacity={1-p} transform="translate(540 1100)"><Ellipse rx={50+p*190} ry={8+p*20} fill="none" stroke="#fff5c4" strokeWidth={10-p*7}/>{[-1,1].map(side=><G key={side} transform={`translate(${side*(45+p*140)} ${-p*36}) scale(${.5+p*.8})`}><Path d="M-53 8Q-74 -12 -53 -27Q-42 -49 -21 -38Q-5 -67 19 -46Q46 -51 49 -25Q76 -8 55 10Z" fill="#fff2ca" stroke="#bf9d85" strokeWidth="4"/><Path d="M-38 -17Q-27 -34 -14 -23M9 -33Q25 -39 33 -23" fill="none" stroke="#fffdf0" strokeWidth="5" strokeLinecap="round"/></G>)}</G>;}

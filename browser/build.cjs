@@ -1,5 +1,5 @@
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
-fs.mkdirSync('dist',{recursive:true});fs.cpSync('public','dist',{recursive:true});
+fs.rmSync('dist',{recursive:true,force:true});fs.mkdirSync('dist',{recursive:true});fs.cpSync('public','dist',{recursive:true});
 const esbuild=require('esbuild');
 esbuild.buildSync({entryPoints:['src/web/main.jsx'],bundle:true,minify:true,sourcemap:false,outfile:'dist/game.js',loader:{'.js':'jsx'},external:['./fonts/*'],alias:{'react-native':require('path').resolve('src/web/native-adapter.jsx'),'react-native-svg':require('path').resolve('src/web/svg-adapter.jsx')},define:{'process.env.NODE_ENV':'"production"'},legalComments:'eof'});
 

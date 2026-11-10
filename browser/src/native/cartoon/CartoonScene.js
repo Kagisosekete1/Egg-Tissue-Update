@@ -1,3 +1,5 @@
+import SplashImpact from './effects/SplashImpact';
+import LandingDust from './effects/LandingDust';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, AppState, View } from 'react-native';
 import Svg, { ClipPath, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
@@ -51,6 +53,8 @@ export default function CartoonScene({worldIndex=0,danger=0,sprayToken=0,falling
   <Bottle squeeze={spray?Math.sin(Math.min(1,age/.55)*Math.PI):0}/>
   {spray&&<G id="visible-spray-drops">{drops.map(d=><G key={d.id} transform={`translate(${d.x} ${d.y}) rotate(${d.angle})`} opacity={d.opacity}><Ellipse rx={d.radius} ry={d.radius*1.7} fill="#71e0fa" stroke="#247faf" strokeWidth="3"/><Ellipse cx="-2" cy="-4" rx="2" ry="5" fill="#eaffff"/></G>)}</G>}
   {spray&&age>.25&&<G id="water-impact" opacity={Math.max(0,1-(age-.25)*2)}>{[0,1,2,3,4].map(i=>{const x=675+(i-2)*18,y=tissueTopAt(x,sag)+4;return <Path key={i} d={`M${x} ${y}l${(i-2)*7} ${-13-(i%2)*10}`} stroke="#46bfdf" strokeWidth="6" strokeLinecap="round"/>;})}</G>}
+  {spray&&age>.23&&age<.75&&<SplashImpact x={675} y={tissueTopAt(675,sag)} progress={(age-.23)/.52}/>}
+  {landed&&fallAge<1.8&&<LandingDust progress={(fallAge-.9)/.9}/>}
   {landed&&fallAge<2.4&&Array.from({length:9},(_,i)=>{const p=clamp((fallAge-.9)/1.5),a=i*2.4;return <Star key={i} x={540+Math.cos(a)*(80+p*220)} y={1050-Math.sin(i)*70-p*130} size={.5+p*.4} rotation={i*30+p*100} color={i%2?'#ffd64f':'#ff94be'}/>;})}
   <G className="ambient-leaves">{[0,1080].map((x,i)=><G key={x} transform={`translate(${x} 1280) scale(${i?-1:1} 1)`}><Path d="M0 0Q140 -200 180 -100Q170 -30 0 0M0 0Q30 -250 80 -240Q140 -140 0 0" fill="url(#leaf)" {...outline}/><Path d="M0 0L138 -104M0 0L75 -205" stroke="#d5ec9c" strokeWidth="7"/></G>)}</G>
   </Svg></View>;

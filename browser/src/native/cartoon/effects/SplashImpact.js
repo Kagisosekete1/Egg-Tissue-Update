@@ -1,0 +1,3 @@
+import React from 'react';
+import {G,Ellipse,Path} from 'react-native-svg';
+export default function SplashImpact({x,y,progress}){const p=Math.max(0,Math.min(1,progress));return <G opacity={1-p} transform={`translate(${x} ${y})`}><Ellipse cy="5" rx={12+p*78} ry={4+p*15} fill="none" stroke="#d5fcff" strokeWidth={8-p*5}/><Path d={`M-42 0L-51 ${-16-p*21}L-25 -6L-19 ${-35-p*18}L0 -12L22 ${-34-p*22}L28 -5L54 ${-19-p*15}L41 4`} fill="#99f0ff" stroke="#268eb6" strokeWidth="3" strokeLinejoin="round"/>{Array.from({length:7},(_,i)=>{const a=Math.PI*(.12+i*.13),distance=22+p*95,cx=Math.cos(a)*distance,cy=-Math.sin(a)*distance+p*p*40;return <Ellipse key={i} cx={cx} cy={cy} rx={4+(i%3)} ry={7+(i%3)} fill={i%2?'#c9fcff':'#67ddf4'} stroke="#248db8" strokeWidth="2"/>;})}</G>;}

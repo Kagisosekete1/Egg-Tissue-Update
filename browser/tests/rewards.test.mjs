@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {claimDailyGift,dailyGift,claimWelcome,claimMilestone,milestones} from '../src/web/rewards.js';
+import {loadProgress,recordRound,claimGoal,SHIELDS} from '../src/web/progression.js';
+import {createLevelGame,levelChallenge} from '../src/web/adventure.js';
+let p=loadProgress(null);const date=n=>new Date(`2026-11-${String(n).padStart(2,'0')}T08:00:00Z`);
+p=claimWelcome(p);assert.equal(p.points,500);assert.equal(p.inventory.emergency_stabilizer,1);assert.equal(p.shields.length,1);assert.equal(claimWelcome(p),p);
+for(let day=1;day<=7;day++){const d=date(day),before=p;const gift=dailyGift(p,d);assert.equal(gift.day,day);p=claimDailyGift(p,d);assert.equal(p.points,before.points+gift.coins);assert.equal(claimDailyGift(p,d),p);}
+assert.equal(p.gifts.streak,7);assert.equal(p.shields.length,2);assert.equal(p.inventory.emergency_stabilizer,2);assert.equal(dailyGift(p,date(8)).day,1);assert.equal(dailyGift(p,date(9)).day,1);assert.equal(claimDailyGift(p,date(6)),p,'clock rollback grants a duplicate gift');
+const saved=loadProgress(JSON.stringify(p));assert.equal(claimDailyGift(saved,date(7)),saved);assert.equal(claimWelcome(saved),saved);
+const initial=loadProgress(null),g={...createLevelGame({mode:'computer',difficulty:'normal',gameMode:'classic'}),gameId:'first-reward',phase:'over',current:2,safeSprays:8,rounds:3};
+p=recordRound(initial,g,{levelId:1,date:date(10)});assert.equal(p.points,180+40+210);assert.equal(p.history[0].prize.clear,210);assert.equal(recordRound(p,g,{levelId:1,date:date(10)}),p);
+const replay=recordRound(p,{...g,gameId:'replay'},{levelId:1,date:date(10)});assert.equal(replay.history[0].prize.clear,0);assert.equal(replay.points-p.points,220);
+p=recordRound(replay,{...g,gameId:'streak'},{date:date(10)});assert.equal(p.history[0].prize.streakBonus,100);assert.equal(p.winStreak,3);
+const before=p;p=recordRound(p,{...g,gameId:'loss',current:1},{date:date(10)});assert.equal(p.points-before.points,45);assert.equal(p.winStreak,0);assert.equal(p.xp-before.xp,20);
+const goalBefore=p;p=claimGoal(p,'wins',date(10));assert.equal(p.points-goalBefore.points,100);assert.equal(claimGoal(p,'wins',date(10)),p);
+const milestoneBefore=p;p=claimMilestone(p,'first-win');assert.equal(p.points-milestoneBefore.points,200);assert.equal(claimMilestone(p,'first-win'),p);assert.equal(claimMilestone(p,'garden-cup'),p);
+let cup={...initial,levels:{1:1,2:1,3:1,4:1,5:1}};cup=recordRound(cup,{...g,gameId:'cup-start',gameMode:'tour'},{levelId:6,seriesComplete:false,seriesWon:false});assert.equal(cup.history[0].prize.cup,0);cup=recordRound(cup,{...g,gameId:'cup-end',gameMode:'tour'},{levelId:6,seriesComplete:true,seriesWon:true});assert.equal(cup.history[0].prize.cup,500);assert.equal(cup.shields[0].type,'basic');const repeat=recordRound(cup,{...g,gameId:'cup-repeat',gameMode:'tour'},{levelId:6,seriesComplete:true,seriesWon:true});assert.equal(repeat.history[0].prize.cup,0);assert.equal(repeat.shields.length,1);
+assert.equal(recordRound(p,{...g,gameId:'friend',mode:'friend'}),p);assert(SHIELDS[0].price<=600);
+for(let id=1;id<=60;id++){const rule=levelChallenge({id}),game=createLevelGame({difficulty:'normal',gameMode:'classic'},{id});assert(Math.abs(game.damage/game.threshold-rule.wet)<1e-10);assert(game.threshold>0);assert.equal(game.current,1);assert.equal(game.phase,'ready');}
+const sudden=createLevelGame({gameMode:'sudden'},{id:5});assert(Math.abs(sudden.damage/sudden.threshold-.72)<1e-10);
+console.log('PASS: gift persistence/repeat guards, seven-day calendar and missed-day reset, welcome items, affordable shields, match/clear/cup/streak rewards, safe loss earnings, mission/milestone claims, tournament bonus once, level modifiers and unchanged turn start.');
