@@ -19,3 +19,5 @@ response=await event('fetch',{request:new Request(origin+'/audio/game-music/suno
 console.log('PASS: install manifest/PNG icons, offline app shell/navigation, cache activation cleanup, audio range requests, optional 12-song download and offline media.');
 
 const css=fs.readFileSync('dist/game.css','utf8');assert(!css.includes('fonts.googleapis.com'));assert(!css.includes('fonts.gstatic.com'));assert(css.includes('/fonts/baloo-2-latin.woff2'));assert(css.includes('/fonts/nunito-latin.woff2'));console.log('PASS: cache-first launch without network attempts and both fonts bundled for offline play.');
+
+assert(!fs.readFileSync('dist/sw.js','utf8').includes('response.arrayBuffer()'),'cached media still copies a full song into a JS buffer');console.log('PASS: cached byte ranges use Blob slices rather than whole-song JS buffers.');

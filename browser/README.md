@@ -62,3 +62,11 @@ Home and You now both expose **Save full game offline**. One online preparation 
 Saved navigation is cache-first: cold launch does not wait for a failed or stalled network request. Fonts no longer use Google’s servers; local WOFF2 files and OFL licenses are packaged under `public/fonts/`. Cache status checks verify every core asset instead of relying solely on service-worker registration. Player progress and infinite world generation remain entirely local.
 
 Offline launch/media/cache tests and the install/save/download UI integration checks passed. Actual airplane-mode testing on a physical phone remains unverified in this environment.
+
+## Mobile freeze/performance repair
+
+Following a freeze report from a Samsung A05, the web renderer no longer rebuilds the complete SVG tree 30 times a second while idle. Ambient cloud, helicopter/rotor, egg and foliage movement uses CSS animation. The React animation clock runs via requestAnimationFrame only during short spray/fall effects, stops on completion, and suspends when paused or backgrounded. Static scenery, egg artwork and bottle components are memoized; spray particles are bounded to 16 normally / 8 with reduced motion.
+
+Cached media byte-range replies now use Blob slices instead of materializing an entire song in a JavaScript ArrayBuffer per request. A partial network audio request no longer launches a duplicate full-song download during gameplay; full offline preparation still explicitly saves the playlist. Old audio sources/decoder buffers are released on track changes and exit.
+
+Validation: a DOM integration test observed zero idle/home SVG mutations after settling, verified spray animation completion and persistent wetness, and checked responsive spray/pause/back controls. Two complete human/computer cycles passed. A 100-round media lifecycle test retains at most two music resources and releases all media on exit. Existing rules/worlds/playlist/offline tests passed. This establishes the removed work and regression behavior; it is not a physical Samsung A05 frame-rate or freeze-resolution verification.

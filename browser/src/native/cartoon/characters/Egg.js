@@ -1,7 +1,7 @@
-import React from 'react';
+import React,{memo} from 'react';
 import { Circle, Ellipse, G, Path } from 'react-native-svg';
 import { INK, outline } from '../palette';
-export default function Egg({mood=0,blink,arm,landed}){const scared=mood>=3,worried=mood===2,alert=mood===1;return <G id={`egg-reaction-${mood}`}>
+function Egg({mood=0,blink,arm,landed}){const scared=mood>=3,worried=mood===2,alert=mood===1;return <G id={`egg-reaction-${mood}`}>
  <Ellipse cy="13" rx="119" ry="20" fill={INK} opacity={.13}/>
  <G transform={`rotate(${-arm} -105 -80)`}><Path d="M-100 -90Q-170 -130 -180 -70" fill="none" {...outline}/><Path d="M-190 -65Q-213 -90 -197 -96L-181 -82Q-170 -111 -160 -100L-163 -74Q-154 -56 -177 -50Z" fill="#ffcd78" {...outline}/></G>
  <G transform={`rotate(${arm} 105 -80)`}><Path d="M100 -90Q170 -130 180 -70" fill="none" {...outline}/><Path d="M190 -65Q213 -90 197 -96L181 -82Q170 -111 160 -100L163 -74Q154 -56 177 -50Z" fill="#ffcd78" {...outline}/></G>
@@ -17,3 +17,5 @@ export default function Egg({mood=0,blink,arm,landed}){const scared=mood>=3,worr
  {mood>=3&&!landed&&<G><Path d="M110 -191Q137 -165 127 -149Q112 -136 102 -151Q95 -163 110 -191Z" fill="#78e1f7" stroke="#3787b2" strokeWidth="4"/><Path d="M111 -170L115 -158" stroke="#eaffff" strokeWidth="4" strokeLinecap="round"/></G>}
  {landed&&<Path d="M-8 -293L8 -251 -14 -230 10 -210" fill="none" {...outline}/>}
 </G>;}
+
+export default memo(Egg);
