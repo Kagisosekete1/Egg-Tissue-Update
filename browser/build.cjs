@@ -11,3 +11,12 @@ const fonts=fs.readdirSync('public/fonts').filter(file=>file.endsWith('.woff2'))
 const core=['/launch.js','/index.html','/game.js','/game.css','/manifest.webmanifest','/icons/icon-192.png','/icons/icon-512.png','/icons/icon-180.png','/icons/maskable-512.png',...effects,...fonts];
 const template=fs.readFileSync('scripts/sw-template.js','utf8');const digest=crypto.createHash('sha256').update(template);for(const file of core)digest.update(file).update(fs.readFileSync('dist'+file));const hash=digest.digest('hex').slice(0,16);
 fs.writeFileSync('dist/sw.js',template.replace('__VERSION__',hash).replace('__CORE__',JSON.stringify(core)).replace('__MUSIC__',JSON.stringify(music)));
+
+fs.copyFileSync('dist/sw.js','dist/offline-sw.js');
+// Online release: fingerprint scripts so an old offline shell cannot supply stale code.
+const onlineHash=crypto.createHash('sha256').update(fs.readFileSync('dist/game.js')).update(fs.readFileSync('dist/game.css')).update(fs.readFileSync('dist/launch.js')).digest('hex').slice(0,12);
+let onlineHtml=fs.readFileSync('dist/index.html','utf8');
+for(const file of ['game.js','game.css','launch.js']){const name=file.replace('.', '-online-'+onlineHash+'.');fs.copyFileSync('dist/'+file,'dist/'+name);onlineHtml=onlineHtml.replace('./'+file,'./'+name);}
+fs.writeFileSync('dist/index.html',onlineHtml);fs.writeFileSync('dist/online.html',onlineHtml);
+// Existing installs can update to a worker which stops intercepting network requests.
+fs.writeFileSync('dist/sw.js',`self.addEventListener('install',()=>self.skipWaiting());\nself.addEventListener('activate',event=>event.waitUntil((async()=>{await self.clients.claim();await self.registration.unregister();})()));\n`);

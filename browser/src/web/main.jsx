@@ -1,7 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import Match from './Match';
-import {usePwa} from './pwa';
 import {gameAudio} from './audio';
 import Portal from './Portal';
 import {read,write} from './play-ui';
@@ -13,7 +12,7 @@ const initialVisual=read('egg-visual-mode',window.matchMedia('(max-width: 600px)
 document.documentElement.dataset.visual=initialVisual==='full'?'full':'light';
 function getRoute(){const [path,query='']=location.hash.replace(/^#\/?/,'').split('?');return {path:path||'home',params:new URLSearchParams(query)};}
 function App(){
- const pwa=usePwa();
+ const pwa=null;
  const [visualMode,setVisualMode]=useState(initialVisual==='full'?'full':'light');
  const changeVisual=mode=>{setVisualMode(mode);write('egg-visual-mode',mode);document.documentElement.dataset.visual=mode;};
  const [route,setRoute]=useState(getRoute),[progress,setProgress]=useState(()=>loadProgress(read(KEY,null))),[audioOn,setAudioOn]=useState(()=>read('egg-2d-sound','1')==='1'),[best,setBest]=useState(()=>Number(read('egg-2d-best',0))||0);
