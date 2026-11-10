@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+import {LEVELS,EMPTY_PROGRESS,loadProgress,recordRound,roundPoints,claimGoal,dailyGoals,todayKey,isLevelUnlocked} from '../src/web/progression.js';
+import {createGame,completeRoll,applySpray,nextTurn} from '../src/web/rules.js';
+const date=new Date('2026-11-10T22:30:00Z');
+assert.equal(todayKey(date),'2026-11-11');
+assert.equal(LEVELS.length,12);
+assert.equal(isLevelUnlocked(EMPTY_PROGRESS,2),false);
+const g={...createGame({mode:'computer',difficulty:'normal',gameMode:'classic'}),gameId:'first',current:2,phase:'over',safeSprays:8,rounds:3};
+assert.equal(roundPoints(g,true),63);assert.equal(roundPoints(g,false),-63);
+let p=recordRound(loadProgress(null),g,{levelId:1,date});
+assert.equal(p.levels[1],3);assert(isLevelUnlocked(p,2));assert.equal(p.games,1);assert.equal(p.xp,60);
+assert.equal(recordRound(p,g,{levelId:1,date}),p,'duplicate round recorded twice');
+assert.equal(recordRound(p,{...g,mode:'friend',gameId:'friend'}),p,'friend game changed solo stats');
+p=recordRound(p,{...g,gameId:'locked'},{levelId:12,date});assert.equal(p.levels[12],undefined,'locked level bypass');
+const before=p;p=claimGoal(p,'wins',date);assert.equal(p.xp,before.xp+40);assert.equal(claimGoal(p,'wins',date),p,'daily reward claimed twice');
+assert.equal(claimGoal(p,'games',date),p,'incomplete goal claimed');
+p=recordRound(p,{...g,gameId:'loss',current:1,safeSprays:60},{date});assert(p.points>=0);assert.equal(dailyGoals(p,date).find(g=>g.id==='games').value,3);
+const tomorrow=new Date('2026-11-12T01:00:00Z');assert.equal(dailyGoals(p,tomorrow)[0].value,0);
+let tournament={...loadProgress(null),levels:{1:1,2:1,3:1,4:1,5:1}};
+tournament=recordRound(tournament,{...g,gameId:'tour1',gameMode:'tour'},{levelId:6,seriesComplete:false,seriesWon:false,date});assert.equal(tournament.levels[6],undefined);
+tournament=recordRound(tournament,{...g,gameId:'tour2',gameMode:'tour'},{levelId:6,seriesComplete:true,seriesWon:true,date});assert(tournament.levels[6]);
+const sudden=createGame({difficulty:'easy',gameMode:'sudden'});assert.equal(sudden.damage,sudden.threshold*.72);
+let chaos=completeRoll(createGame({difficulty:'easy',gameMode:'chaos'}),4,()=>0);assert.equal(chaos.roll,8);
+let extra=completeRoll(createGame({difficulty:'easy',gameMode:'chaos'}),2,()=>.5); // chaos card 2 (slippery)
+assert(extra.slippery);
+const shielded=completeRoll(createGame({difficulty:'normal'}),1,()=>0);assert.equal(applySpray(shielded).damage,0);
+assert.equal(nextTurn({...g,current:1,extraTurn:true}).current,1);
+console.log('PASS: level gates/stars, tournament gates, signed scoring, duplicate-round protection, daily rewards/reset, original sudden/chaos/turn/bonus rules.');
