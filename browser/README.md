@@ -70,3 +70,15 @@ Following a freeze report from a Samsung A05, the web renderer no longer rebuild
 Cached media byte-range replies now use Blob slices instead of materializing an entire song in a JavaScript ArrayBuffer per request. A partial network audio request no longer launches a duplicate full-song download during gameplay; full offline preparation still explicitly saves the playlist. Old audio sources/decoder buffers are released on track changes and exit.
 
 Validation: a DOM integration test observed zero idle/home SVG mutations after settling, verified spray animation completion and persistent wetness, and checked responsive spray/pause/back controls. Two complete human/computer cycles passed. A 100-round media lifecycle test retains at most two music resources and releases all media on exit. Existing rules/worlds/playlist/offline tests passed. This establishes the removed work and regression behavior; it is not a physical Samsung A05 frame-rate or freeze-resolution verification.
+
+## Startup recovery and phone fallback
+
+After a report that the link showed an error on a Samsung A05, the published HTML/JS/service-worker responses were fetched and checked against the built files; all matched and a fresh published-bundle computer match test passed. The phone reported Chrome ERR_FAILED. This does not by itself establish whether its cause is browser storage, connectivity, or another device-specific failure.
+
+Phones now default to Smooth mode, which keeps interactive egg/water/fall effects but disables continuous background CSS motion. Full animation remains an opt-in under You. The Home Play card appears before installation/offline preparation, and mobile scrolling has explicit flex sizing.
+
+`launch.js` provides a startup/reload/recovery panel outside the React root, hiding it only when the game mounts. Refresh saved game checks an uncached network asset before unregistering the app worker and refreshing app-code caches; it preserves localStorage progress and the music cache. `?repair=1` is a network-first recovery entry. This repair worker activates promptly and navigates only windows explicitly opened with that recovery flag; ordinary in-progress game windows are not forcibly reloaded.
+
+Checks cover phone Smooth defaults, startup panel removal, Play ordering, fresh load/roll/spray/back, animation preference persistence, recovery-worker activation/navigation scope, offline behavior and prior game rules. Physical-device recovery remains unverified pending a phone retest.
+
+The worker now catches CacheStorage open/read/body errors and falls back to network responses instead of rejecting navigation (which can produce ERR_FAILED). Recovery activation no longer depends on successful cache creation. Simulated cache-database failures now return working online HTML/JS, accurate offline status and a readable offline message rather than a rejected response. Core-cache cleanup is best-effort and does not touch local progress or saved music.
