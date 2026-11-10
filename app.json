@@ -5,7 +5,7 @@
     "version": "1.0.2",
     "scheme": "eggtissue",
     "icon": "./assets/app-logo.png",
-    "orientation": "default",
+    "orientation": "portrait",
     "android": {
       "package": "com.semogrouptech.eggtissue",
       "versionCode": 8,
