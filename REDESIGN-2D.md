@@ -5,6 +5,7 @@ The copied project now renders the egg-and-tissue game using original layered SV
 The game logic, server data, scoring, accounts, shields and power-ups are preserved. No new dependency was needed. Animation pauses when the scene is inactive, the app backgrounds, or a rewarded advert pauses the game. Reduced-motion preferences disable ambient character/background movement. Spray particles and impact stars have bounded counts.
 
 Validation:
+- Expo Android production JavaScript/Hermes export: passed with two Metro workers. This is a bundle check, not a signed APK build.
 - Shield gameplay/migration checks: passed.
 - Power-up gameplay/migration checks: passed.
 - New cartoon renderer and 2D die ESLint: passed.
