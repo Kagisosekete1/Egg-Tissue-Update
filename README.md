@@ -47,3 +47,5 @@ Everything stays in the browser as requested: device points and inventory are se
 Inside `browser/`, run `npm ci`, `npm run build`, and `npm test`. The native Android app remains in the root. The browser adaptation uses hash routes and does not change the native application's navigation or production backend.
 
 The browser now includes the native game’s original sound effects and three music tracks, with pause/mute and separate music control. The shared 2D scene places the sprayer above-right beside the tree, with a directed water stream, persistent wet patches and drips.
+
+Browser control update: turns now strictly alternate with one roll per player, manual sprays have no countdown interruption, Back exits directly, and pause menus remain visible and dismissible. Added earlier egg reactions, persistent tissue warnings, moving clouds/helicopter and the nine uploaded songs in a continuous 12-track shuffle at the existing volume. See `browser/README.md` for behavior and validation.

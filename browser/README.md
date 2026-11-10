@@ -11,7 +11,7 @@ This edition reuses the original mobile game's rule module and the copied projec
 - Tournament is first to two wins. Each round uses the original rules.
 - Levels: a new 12-level trail across two garden themes. Win against the computer to unlock the next level; tournament levels require winning the series. Stars reward safe sprays.
 - Challenges: three daily local missions, with claim-once XP rewards; reset follows Africa/Johannesburg dates.
-- Shop: the original boost/shield catalog and point prices, using a separate device wallet. Items must be bought before use; shields have limited hits. Original boost, counter, lucky-roll and AI-boost behavior is retained.
+- Shop: the original boost/shield catalog and point prices, using a separate device wallet. Items must be bought before use; shields have limited hits. Boost/counter behavior is retained with the strict-turn adjustments described below.
 - Results: actual local computer-round history and a personal best. No invented leaderboard players.
 - Profile: local name, XP title, sound settings.
 
@@ -32,3 +32,13 @@ The browser uses the native game's original roll, spray, crash, danger, heartbea
 The mirrored sprayer is beside the upper-right tree and points down-left toward the egg and tissue. `src/native/cartoon/layout.js` shares nozzle and tissue coordinates with the bounded spray particles. Clipped blue wet patches persist, spread with moisture, and produce visible dripping water; restarting clears the effects. The same scene change is included in the native project.
 
 Checks: 16 copied audio files matched the original checksums and decoded with ffprobe; audio lifecycle/geometry unit tests passed; DOM integration checks passed for original audio triggers, pause/mute/resume/exit, spray visibility, persistent wetness and restart cleanup. Actual speaker output and device visual QA remain unverified.
+
+## Turn, navigation, scenery and playlist fixes
+
+The browser edition now enforces one roll per player and strict alternating turns, including Chaos. `turn-rules.js` wraps the retained original rules: extra-turn cards become first-spray shields; attacks retain the attacker's roll; counter responses return to the attacker; Lucky Roll is disabled without consuming owned stock. The AI always rolls and takes its required sprays instead of skipping its roll with an attack. Each manual tap applies exactly one spray immediately, without a high-tension countdown or mid-turn input lock. Only rolling, the completed-turn handoff and game-over sequence briefly lock actions.
+
+Back leaves the match directly. Pause has an explicit close button, dismissible backdrop and Escape support. Pausing animations no longer freezes the modal's entrance at opacity zero. The instruction panel remains visible and updates with early loose/sagging/wobbly/tear warnings. The egg has five progressive expressions, including raised brows, a worried mouth, wide eyes and sweat. Clouds drift across the scene and an original cartoon helicopter flies past with a moving rotor; scenery pauses with the match and respects reduced motion.
+
+Nine user-uploaded Suno M4A songs are included alongside the three existing tracks. Mobile AAC copies retain the full uploaded durations, with no volume processing; the player gain remains 0.13. A 12-track shuffle bag avoids repeats until the bag is exhausted. Play starts a song immediately, a single next song is preloaded, and the next song starts automatically on `ended`. Restart/new-round selects the next shuffled track immediately. Pause, mute, background, game-over and exit stop playback appropriately.
+
+Validation includes 20 forced-extra-turn Chaos turns, exact spray counts, attack/counter turn ownership, five rapid-tap two-player turns with early expressions, two full computer/human cycles, all main navigation routes, menu close/Escape/direct Back, moving/pause-frozen scenery, full tournament completion, and the 12-track shuffle/end/pause lifecycle. Uploaded copies decode as AAC and match original durations. Browser/device visual and actual speaker-output QA remain unverified because browser-control tools are unavailable.

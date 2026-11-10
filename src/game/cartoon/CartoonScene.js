@@ -8,6 +8,7 @@ import Egg from './characters/Egg';
 import Bottle from './characters/Bottle';
 import Landscape from './environments/Landscape';
 import Star from './effects/Star';
+const emotion=ratio=>ratio>=.8?4:ratio>=.5?3:ratio>=.25?2:ratio>=.06?1:0;
 const clamp=n=>Math.max(0,Math.min(1,n));
 
 /** Independent SVG layers/parts; bounded 30fps clock only while visible and unpaused. */
@@ -22,7 +23,7 @@ export default function CartoonScene({danger=0,sprayToken=0,falling=false,fallVa
   useEffect(()=>{setFellAt(falling?clock.current:null);impacted.current=false;},[falling,resetToken]);
   useEffect(()=>{if(fellAt!==null&&time-fellAt>=.9&&!impacted.current){impacted.current=true;callback.current?.();}},[time,fellAt]);
   const ratio=clamp(danger),sag=ratio*100,age=sprayedAt.reset===resetToken?time-sprayedAt.at:10,spray=age>=0&&age<.75,fallAge=fellAt===null?0:time-fellAt;
-  const drop=falling?clamp((fallAge-.2)/.7):0,landed=drop===1,bob=reduced?0:Math.sin(time*2.6)*5,wobble=reduced?0:Math.sin(time*15)*Math.max(0,ratio-.65)*12;
+  const drop=falling?clamp((fallAge-.2)/.7):0,landed=drop===1,bob=reduced?0:Math.sin(time*2.6)*5,wobble=reduced?0:Math.sin(time*(ratio>.5?12:6))*Math.max(0,ratio-.06)*8;
   const wet=ratio>0||spray,drops=spray?sprayDrops(age,sag,reduced):[];
   const eggY=760+sag*.5+drop*(1080-760-sag*.5),scaleY=landed?1-Math.sin(clamp((fallAge-.9)/.22)*Math.PI)*.2:1;
   return <View style={{flex:1,backgroundColor:'#91e1e7'}} accessible accessibilityLabel={`Cartoon egg ${falling?'has fallen':ratio>.8?'looks frightened':'balances on the tissue'}`}><Svg width="100%" height="100%" viewBox="0 0 1080 1300" preserveAspectRatio="xMidYMid slice">
@@ -43,7 +44,7 @@ export default function CartoonScene({danger=0,sprayToken=0,falling=false,fallVa
     {Array.from({length:8},(_,i)=>{const x=[720,650,580,800,500,420,340,270][i],y=(tissueTopAt(x,sag)+tissueBottomAt(x,sag))/2,visible=i<Math.max(1,Math.ceil(ratio*8));return visible?<G key={i}><Ellipse cx={x} cy={y} rx={16+ratio*31} ry={8+ratio*7} fill="#2faad3" opacity={.35+ratio*.35}/><Path d={`M${x-8} ${y-3}Q${x} ${y-7} ${x+8} ${y-3}`} fill="none" stroke="#eaffff" strokeWidth="4" strokeLinecap="round"/></G>:null;})}</G>
     {[350,580,775].map((x,i)=>{const phase=reduced?.25:(time*.72+i*.33)%1,y=tissueBottomAt(x,sag)+10+(ratio>.25?phase*70:0);return <G key={x} opacity={ratio>.12?(.65+ratio*.25)*(ratio>.25?1-phase*.6:1):0}><Path d={`M${x} ${y-13}C${x-4} ${y-4} ${x-13} ${y+4} ${x-10} ${y+10}C${x-6} ${y+22} ${x+11} ${y+19} ${x+11} ${y+9}C${x+11} ${y+2} ${x+4} ${y-5} ${x} ${y-13}Z`} fill="#62dafa" stroke="#288ebd" strokeWidth="3"/><Ellipse cx={x-3} cy={y+7} rx="3" ry="5" fill="#e3fcff"/></G>;})}
   </G>}
-  <G transform={`translate(${540+wobble} ${eggY+(falling?0:bob)}) rotate(${falling?drop*(fallVariant==='spin'?355:22):0}) scale(1 ${scaleY})`}><Egg mood={falling?3:ratio>.8?2:0} blink={!reduced&&!falling&&time%4>3.8} arm={falling?55:reduced?0:Math.sin(time*3)*9} landed={landed}/></G>
+  <G transform={`translate(${540+wobble} ${eggY+(falling?0:bob)}) rotate(${falling?drop*(fallVariant==='spin'?355:22):0}) scale(1 ${scaleY})`}><Egg mood={falling?5:emotion(ratio)} blink={!reduced&&!falling&&time%4>3.8} arm={falling?55:reduced?emotion(ratio)*5:emotion(ratio)*7+Math.sin(time*(ratio>.5?8:3))*9} landed={landed}/></G>
   <Bottle squeeze={spray?Math.sin(Math.min(1,age/.55)*Math.PI):0}/>
   {spray&&<G id="visible-spray-drops">{drops.map(d=><G key={d.id} transform={`translate(${d.x} ${d.y}) rotate(${d.angle})`} opacity={d.opacity}><Ellipse rx={d.radius} ry={d.radius*1.7} fill="#71e0fa" stroke="#247faf" strokeWidth="3"/><Ellipse cx="-2" cy="-4" rx="2" ry="5" fill="#eaffff"/></G>)}</G>}
   {spray&&age>.25&&<G id="water-impact" opacity={Math.max(0,1-(age-.25)*2)}>{[0,1,2,3,4].map(i=>{const x=675+(i-2)*18,y=tissueTopAt(x,sag)+4;return <Path key={i} d={`M${x} ${y}l${(i-2)*7} ${-13-(i%2)*10}`} stroke="#46bfdf" strokeWidth="6" strokeLinecap="round"/>;})}</G>}
