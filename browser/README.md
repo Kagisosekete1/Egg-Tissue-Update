@@ -54,3 +54,11 @@ After the first online visit finishes preparing the cache, the app shell and sou
 There is no level-12 endpoint anymore. `levelAt(id)` generates six stages per world without a fixed final world. Eight environment themes cycle through new expeditions: Garden Lab, Cloud Garden, Sunny Shores, Candy Valley, Frosty Peaks, Sunset Mesa, Starlight Grove and Crystal Cove. Each has its own palette and appropriate scenery. Only three worlds are rendered on the map at a time; more can be browsed with **More worlds**. The original 12 levels and existing save schema are retained. Difficulty stays within the playable easy/normal/hard rules rather than growing to impossible thresholds.
 
 Checks: endless-level generation through level 99,999,999; level-13 unlock from an existing save; new-world artwork; map paging with bounded DOM; install-event/manual-install UI; offline shell/media/cache behavior and all previous gameplay tests. A physical-device install and interactive browser visual QA have not been performed in this environment.
+
+## Full offline preparation
+
+Home and You now both expose **Save full game offline**. One online preparation saves the app, both bundled font families, effects and all 12 songs; the panel confirms **Ready without internet** once everything is present. Installed players still see preparation until complete. The operation repairs missing core entries before saving songs and can be retried after a failed connection.
+
+Saved navigation is cache-first: cold launch does not wait for a failed or stalled network request. Fonts no longer use Google’s servers; local WOFF2 files and OFL licenses are packaged under `public/fonts/`. Cache status checks verify every core asset instead of relying solely on service-worker registration. Player progress and infinite world generation remain entirely local.
+
+Offline launch/media/cache tests and the install/save/download UI integration checks passed. Actual airplane-mode testing on a physical phone remains unverified in this environment.
