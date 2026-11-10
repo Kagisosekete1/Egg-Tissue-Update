@@ -3,6 +3,7 @@ import { AccessibilityInfo, AppState, View } from 'react-native';
 import Svg, { ClipPath, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { tissueShape, tissueTopAt, tissueBottomAt, sprayDrops } from './layout';
+import {worldAt} from './worlds';
 import { outline } from './palette';
 import Egg from './characters/Egg';
 import Bottle from './characters/Bottle';
@@ -12,7 +13,7 @@ const emotion=ratio=>ratio>=.8?4:ratio>=.5?3:ratio>=.25?2:ratio>=.06?1:0;
 const clamp=n=>Math.max(0,Math.min(1,n));
 
 /** Independent SVG layers/parts; bounded 30fps clock only while visible and unpaused. */
-export default function CartoonScene({danger=0,sprayToken=0,falling=false,fallVariant='wobble',resetToken=0,paused=false,onImpact}){
+export default function CartoonScene({worldIndex=0,danger=0,sprayToken=0,falling=false,fallVariant='wobble',resetToken=0,paused=false,onImpact}){
   const [time,setTime]=useState(0),[reduced,setReduced]=useState(false),[foreground,setForeground]=useState(true);
   const [sprayedAt,setSprayedAt]=useState({at:-10,reset:resetToken}),[fellAt,setFellAt]=useState(null);
   const clock=useRef(0),impacted=useRef(false),callback=useRef(onImpact),previousSpray=useRef(sprayToken);
@@ -22,21 +23,22 @@ export default function CartoonScene({danger=0,sprayToken=0,falling=false,fallVa
   useEffect(()=>{if(previousSpray.current!==sprayToken){previousSpray.current=sprayToken;setSprayedAt({at:clock.current,reset:resetToken});}},[sprayToken,resetToken]);
   useEffect(()=>{setFellAt(falling?clock.current:null);impacted.current=false;},[falling,resetToken]);
   useEffect(()=>{if(fellAt!==null&&time-fellAt>=.9&&!impacted.current){impacted.current=true;callback.current?.();}},[time,fellAt]);
+  const world=worldAt(worldIndex);
   const ratio=clamp(danger),sag=ratio*100,age=sprayedAt.reset===resetToken?time-sprayedAt.at:10,spray=age>=0&&age<.75,fallAge=fellAt===null?0:time-fellAt;
   const drop=falling?clamp((fallAge-.2)/.7):0,landed=drop===1,bob=reduced?0:Math.sin(time*2.6)*5,wobble=reduced?0:Math.sin(time*(ratio>.5?12:6))*Math.max(0,ratio-.06)*8;
   const wet=ratio>0||spray,drops=spray?sprayDrops(age,sag,reduced):[];
   const eggY=760+sag*.5+drop*(1080-760-sag*.5),scaleY=landed?1-Math.sin(clamp((fallAge-.9)/.22)*Math.PI)*.2:1;
   return <View style={{flex:1,backgroundColor:'#91e1e7'}} accessible accessibilityLabel={`Cartoon egg ${falling?'has fallen':ratio>.8?'looks frightened':'balances on the tissue'}`}><Svg width="100%" height="100%" viewBox="0 0 1080 1300" preserveAspectRatio="xMidYMid slice">
   <Defs>
-  <LinearGradient id="sky" x2="0" y2="1"><Stop stopColor="#4dc9e4"/><Stop offset="1" stopColor="#ecf4ba"/></LinearGradient>
+  <LinearGradient id="sky" x2="0" y2="1"><Stop stopColor={world.sky[0]}/><Stop offset="1" stopColor={world.sky[1]}/></LinearGradient>
   <LinearGradient id="shell" x2="1" y2="1"><Stop stopColor="#fffdf1"/><Stop offset=".55" stopColor="#ffecc0"/><Stop offset="1" stopColor="#efa665"/></LinearGradient>
   <LinearGradient id="bottle" x2="1" y2="1"><Stop stopColor="#ff98bd"/><Stop offset="1" stopColor="#dc4d94"/></LinearGradient>
-  <LinearGradient id="leaf" x2="1" y2="1"><Stop stopColor="#a0dc77"/><Stop offset="1" stopColor="#47a793"/></LinearGradient>
-  <LinearGradient id="table" x2="0" y2="1"><Stop stopColor="#ffd39a"/><Stop offset="1" stopColor="#eaa180"/></LinearGradient>
+  <LinearGradient id="leaf" x2="1" y2="1"><Stop stopColor={world.leaf[0]}/><Stop offset="1" stopColor={world.leaf[1]}/></LinearGradient>
+  <LinearGradient id="table" x2="0" y2="1"><Stop stopColor={world.table[0]}/><Stop offset="1" stopColor={world.table[1]}/></LinearGradient>
   <LinearGradient id="wet-tissue" x2="0" y2="1"><Stop stopColor="#a3f0f5"/><Stop offset="1" stopColor="#53bedc"/></LinearGradient>
   <ClipPath id="tissue-clip"><Path d={tissueShape(sag)}/></ClipPath>
   </Defs>
-  <Landscape time={reduced?0:time}/>
+  <Landscape time={reduced?0:time} world={world}/>
   <G {...outline}><Rect x="170" y="748" width="47" height="345" rx="18" fill="#9a7bc7"/><Rect x="863" y="748" width="47" height="345" rx="18" fill="#9a7bc7"/>
   {!falling?<Path d={tissueShape(sag)} fill="#f6fcff"/>:<G><Path d="M190 750L460 905 380 920 190 790Z" fill="#a4e5ed"/><Path d="M890 750L620 910 690 929 890 790Z" fill="#a4e5ed"/></G>}</G>
   {!falling&&wet&&<G id="wet-tissue-layer">

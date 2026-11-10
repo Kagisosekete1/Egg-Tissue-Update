@@ -1,3 +1,4 @@
+import {worldAt} from './worlds.js';
 export const LEVELS=[
  {id:1,title:'First splash',world:'Garden Lab',difficulty:'easy',gameMode:'classic',tip:'Learn the rhythm. Roll, then spray.'},
  {id:2,title:'Steady hands',world:'Garden Lab',difficulty:'easy',gameMode:'classic',tip:'Keep calm as the tissue gets wetter.'},
@@ -17,8 +18,9 @@ export const EMPTY_PROGRESS={version:1,xp:0,points:0,wins:0,games:0,safeSprays:0
 export function todayKey(date=new Date()){return new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Johannesburg',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);}
 export function loadProgress(value){try{const p=JSON.parse(value||'null');if(!p||p.version!==1)return {...EMPTY_PROGRESS};return {...EMPTY_PROGRESS,...p,levels:p.levels||{},history:Array.isArray(p.history)?p.history.slice(0,30):[],daily:p.daily||{}};}catch{return {...EMPTY_PROGRESS};}}
 export function roundPoints(game,win){const base=Math.min(60,Math.max(0,game.safeSprays)*2)+Math.min(20,Math.max(0,game.rounds)*2)+20;const score=Math.floor(base*({easy:1,normal:1.5,hard:2}[game.difficulty]||1));return win?score:-score;}
-export function unlockedLevel(progress){for(const level of LEVELS){if(!progress.levels[level.id])return level.id;}return LEVELS.length;}
-export function isLevelUnlocked(progress,id){return id===1||!!progress.levels[id-1];}
+export function levelAt(id){if(!Number.isSafeInteger(id)||id<1)return null;const worldIndex=Math.floor((id-1)/6),world=worldAt(worldIndex);if(id<=LEVELS.length)return {...LEVELS[id-1],worldIndex,world:world.name};const step=(id-1)%6,modes=['classic','chaos','classic','sudden','chaos','tour'],titles=['First footprints','Wild splashes','Steady steps','Tissue trouble','One more drop','World champion'];return {id,worldIndex,world:world.name,title:titles[step],difficulty:step<2&&worldIndex%3===0?'normal':'hard',gameMode:modes[(step+(worldIndex%2===0?0:step===2?1:0))%6],tip:step===5?'Win two rounds to unlock the next world.':'Beat the computer to keep your adventure going.'};}
+export function unlockedLevel(progress){let id=1;while(progress.levels[id])id++;return id;}
+export function isLevelUnlocked(progress,id){return Number.isSafeInteger(id)&&id>=1&&(id===1||!!progress.levels[id-1]);}
 export function recordRound(progress,game,{levelId=null,seriesComplete=true,seriesWon=false,date=new Date()}={}){
  if(game.phase!=='over'||progress.history.some(h=>h.id===game.gameId)||game.mode!=='computer')return progress;
  const win=game.current===2,score=roundPoints(game,win),xp=20+(win?40:0),key=todayKey(date),daily=progress.daily[key]||{games:0,wins:0,sprays:0,claimed:[]};
